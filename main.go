@@ -75,7 +75,24 @@ func myHandlerrr(w http.ResponseWriter, r *http.Request) {
 func assem(trip string){
 	// search the db for the trip and get the total amount.
 	emails := make([]string, 0)
+	paid := make(map[string]int)
 	i := 0
+	j:=0
+	rows1, errr := db.Query("SELECT DISTINCT email FROM userInfo WHERE trip=$1",trip)
+	if errr != nil {
+		fmt.Println("trip error")
+		return
+	}
+	for rows1.Next() {
+		var (
+			email string
+		)
+		rows1.Scan(&email)
+		emails = append(emails, email)
+		paid[email] = 0
+		j++
+	}
+	rows1.Close()
 	rows, err := db.Query("SELECT * FROM userInfo WHERE trip=$1",trip)
 	if err != nil {
 		fmt.Println("trip error")
@@ -91,26 +108,14 @@ func assem(trip string){
 
 		rows.Scan(&id, &email, &trip, &amount)
 		i+=amount
+		paid[email] = amount
 	}
 	rows.Close()
-	j:=0
-	rows1, errr := db.Query("SELECT DISTINCT email FROM userInfo WHERE trip=$1",trip)
-	if errr != nil {
-		fmt.Println("trip error")
-		return
-	}
-	for rows1.Next() {
-		var (
-			email string
-		)
-		rows1.Scan(&email)
-		emails = append(emails, email)
-		j++
-	}
-	rows1.Close()
+	
 	k := i/j
 	for z := 0; z<len(emails); z++{
-		sendMail(emails[z], trip, k)
+		t := k - paid[emails[z]]
+		sendMail(emails[z], trip, t)
 	}
 }
 func insertMepls(email string, trip string, amount int){
